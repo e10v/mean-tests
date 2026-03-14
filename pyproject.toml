@@ -1,0 +1,45 @@
+[project]
+name = "mean-tests"
+version = "0.1.0"
+description = "Comparison of two-sample mean tests"
+authors = [
+    { name = "Evgeny Ivanov", email = "14168452+e10v@users.noreply.github.com" }
+]
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = ["numpy", "polars", "scipy", "tea_tasting", "tqdm"]
+
+[dependency-groups]
+dev = ["ruff", "ty"]
+
+[build-system]
+requires = ["uv_build"]
+build-backend = "uv_build"
+
+[tool.ruff.lint]
+extend-select = [
+    "A", "ANN", "ARG", "B", "C4", "C90", "COM", "E", "F", "ERA", "FA", "FLY", "FURB",
+    "I", "ICN", "INP", "INT", "ISC", "N", "NPY", "PERF", "PGH", "PIE", "PL", "Q", "RET",
+    "RSE", "RUF", "S", "SIM", "SLF", "T20", "TC", "TID", "TRY", "UP", "W",
+]
+
+[tool.ruff.lint.isort]
+force-sort-within-sections = true
+lines-after-imports = 2
+
+[tool.tombi]
+schema.strict = false
+
+[tool.poe.tasks]
+ci.sequence = ["markdownlint", "lint", "type"]
+ci.ignore_fail = true
+lint = "ruff check"
+markdownlint = 'markdownlint-cli2 "*.md" "reports/*.md"'
+reset = [
+    { cmd = "git fetch origin main" },
+    { cmd = "git switch dev" },
+    { cmd = "git reset --hard origin/main" },
+    { cmd = "git push --force-with-lease" },
+]
+type = "ty check"
+upgrade = "uv sync --all-groups --upgrade"
