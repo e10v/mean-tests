@@ -1,0 +1,31 @@
+rng = 42
+n_simulations = 10_000
+alpha = 0.05
+power = 0.8
+buckets = [10, 20, 50, 100]
+output = "reports/simulation.md"
+
+[control]
+mean = 1.0
+pareto_users = 0.3  # Top X share of users
+pareto_value = 0.7  # Generate Y share of value
+
+[[treatments]]
+name = "A/A: +5pp top, -5pp bottom, 0% total"
+pp_diff_top = 0.05
+pp_diff_bottom = -0.05
+
+[[treatments]]
+name = "A/A: -5pp top, +5pp bottom, 0% total"
+pp_diff_top = -0.05
+pp_diff_bottom = 0.05
+
+[[treatments]]
+name = "A/B: +5pp top, 0pp bottom, 5% total"
+pp_diff_top = 0.05
+pp_diff_bottom = 0.0
+
+[[treatments]]
+name = "A/B: 0pp top, +5pp bottom, 5% total"
+pp_diff_top = 0.0
+pp_diff_bottom = 0.05
