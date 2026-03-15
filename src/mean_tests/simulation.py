@@ -18,6 +18,8 @@ import mean_tests.utils
 
 
 if TYPE_CHECKING:
+    from typing import Any
+
     import tea_tasting as tt
 
     import mean_tests.config  # noqa: TC004
@@ -28,6 +30,7 @@ PRECISION = 0.00001
 
 def generate_simulation_report(
     rng: int | np.random.Generator,
+    *,
     n_simulations: int,
     alpha: float,
     power: float,
@@ -77,15 +80,6 @@ def generate_simulation_report(
         )
 
         tqdm.tqdm.write(treatment.name)
-        report.append(f"## {treatment.name}")
-        report.append(mean_tests.utils.render_dict({
-            "effect on top users": mean_tests.utils.format_pp(pp_diff_top),
-            "effect on bottom users": mean_tests.utils.format_pp(pp_diff_bottom),
-            "total effect": mean_tests.utils.format_pp(pp_diff_total),
-            "sample size": sample_size,
-        }))
-        tqdm.tqdm.write(report[-1])
-
         simulation_results = run_simulation(
             rng,
             n_simulations=n_simulations,
@@ -98,26 +92,21 @@ def generate_simulation_report(
             sigma1=sigma1,
         )
         results = summarize_results(
-            simulation_results.to_polars(),
+            simulation_results,
             alpha=alpha,
             rate_col=rate_col,
         )
 
-        report.append(mean_tests.utils.render_dicts(
-            results.lazy()
-                .sort(rate_col, "test", descending=True)
-                .select(
-                    "test",
-                    pl.col(rate_col).map_elements(tea_tasting.utils.format_num),
-                    pl.col(f"{rate_col} ci")
-                        .map_elements(mean_tests.utils.format_ci, pl.String),
-                )
-                .collect()
-                .to_dicts(),  # ty:ignore[unresolved-attribute]
-        ))
-        tqdm.tqdm.write(report[-1])
+        report.append(f"## {treatment.name}")
+        report.append(mean_tests.utils.render_dict({
+            "effect on top users": mean_tests.utils.format_pp(pp_diff_top),
+            "effect on bottom users": mean_tests.utils.format_pp(pp_diff_bottom),
+            "total effect": mean_tests.utils.format_pp(pp_diff_total),
+            "sample size": sample_size,
+        }))
+        report.append(mean_tests.utils.render_dicts(results))
 
-    return "\n\n".join(report)
+    return "\n\n".join(report) + "\n"
 
 
 def run_simulation(
@@ -131,39 +120,38 @@ def run_simulation(
     sigma0: float,
     mu1: float,
     sigma1: float,
-) -> tea_tasting.experiment.SimulationResults:
+) -> pl.DataFrame:
+    simulation = functools.partial(
+        analyze_experiment,
+        sample_size=sample_size,
+        mu0=mu0,
+        sigma0=sigma0,
+        mu1=mu1,
+        sigma1=sigma1,
+        user_experiment=user_experiment,
+        bucket_experiments=bucket_experiments,
+    )
     spawn = mp.get_context("spawn")
     with concurrent.futures.ProcessPoolExecutor(mp_context=spawn) as executor:
-        raw_results = executor.map(
-            functools.partial(
-                analyze_experiment,
-                user_experiment=user_experiment,
-                bucket_experiments=bucket_experiments,
-                sample_size=sample_size,
-                mu0=mu0,
-                sigma0=sigma0,
-                mu1=mu1,
-                sigma1=sigma1,
-            ),
-            rng.spawn(n_simulations),
-        )
-        results = tqdm.tqdm(raw_results, total=n_simulations)
-        return tea_tasting.experiment.SimulationResults(results)
+        return pl.concat(tqdm.tqdm(
+            executor.map(simulation, rng.spawn(n_simulations)),
+            total=n_simulations,
+        ))
 
 
 def analyze_experiment(
     rng: np.random.Generator,
     *,
-    user_experiment: tt.Experiment,
-    bucket_experiments: dict[int, tt.Experiment],
     sample_size: int,
     mu0: float,
     sigma0: float,
     mu1: float,
     sigma1: float,
-) -> tea_tasting.experiment.ExperimentResult:
+    user_experiment: tt.Experiment,
+    bucket_experiments: dict[int, tt.Experiment],
+) -> pl.DataFrame:
     sample = mean_tests.sample.make_sample(
-        rng.spawn(1)[0],
+        rng,
         sample_size=sample_size,
         mu0=mu0,
         sigma0=sigma0,
@@ -174,18 +162,18 @@ def analyze_experiment(
     for n_buckets, bucket_experiment in bucket_experiments.items():
         grouped_sample = mean_tests.sample.group_by_buckets(
             sample=sample,
-            rng=rng.spawn(1)[0],
+            rng=rng,
             n_buckets=n_buckets,
         )
         result.update(bucket_experiment.analyze(grouped_sample))
-    return result
+    return result.to_polars().select("metric", "pvalue")
 
 
 def summarize_results(
     results: pl.DataFrame,
     alpha: float,
     rate_col: str,
-) -> pl.DataFrame:
+) -> list[dict[str, Any]]:
     return (
         results.lazy()
         .filter(pl.col("pvalue").is_not_nan())
@@ -201,7 +189,15 @@ def summarize_results(
                 .map_elements(calc_binom_ci, return_dtype=pl.List(pl.Float64))
                 .alias(rate_col + " ci"),
         )
-        .collect()  # ty:ignore[invalid-return-type]
+        .sort(rate_col, "test", descending=True)
+        .select(
+            "test",
+            pl.col(rate_col).map_elements(tea_tasting.utils.format_num),
+            pl.col(f"{rate_col} ci")
+                .map_elements(mean_tests.utils.format_ci, pl.String),
+        )
+        .collect()
+        .to_dicts()  # ty:ignore[unresolved-attribute]
     )
 
 
