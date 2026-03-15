@@ -23,9 +23,13 @@ def calc_sample_size(
     rel_diff: float,
 ) -> int:
     z_crit = scipy.stats.norm.isf(alpha/2) + scipy.stats.norm.ppf(power)
-    rel_var0 = math.exp(sigma0 * sigma0) - 1
-    rel_var1 = (math.exp(sigma1 * sigma1) - 1) * (1 + rel_diff) * (1 + rel_diff)
-    return round(2 * z_crit * z_crit * (rel_var0 + rel_var1) / rel_diff / rel_diff)
+    rel_var0 = math.exp(square(sigma0)) - 1
+    rel_var1 = (math.exp(square(sigma1)) - 1) * square(1 + rel_diff)
+    return round(2 * square(z_crit) * (rel_var0 + rel_var1) / square(rel_diff))
+
+
+def square(x: float) -> float:
+    return x * x
 
 
 def make_sample(
