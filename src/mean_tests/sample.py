@@ -32,7 +32,7 @@ def square(x: float) -> float:
     return x * x
 
 
-def make_sample(
+def make_samples(
     rng: int | np.random.Generator,
     *,
     sample_size: int,
@@ -41,9 +41,20 @@ def make_sample(
     sigma0: float,
     mu1: float,
     sigma1: float,
-) -> pl.DataFrame:
+) -> tuple[pl.DataFrame, pl.DataFrame]:
     rng = np.random.default_rng(rng)
     variant = rng.integers(2, size=sample_size)
     bucket = rng.integers(n_buckets, size=sample_size)
     value = rng.lognormal(mu0 + variant*(mu1 - mu0), sigma0 + variant*(sigma1 - sigma0))
-    return pl.DataFrame({"variant": variant, "bucket": bucket, "value": value})
+    sample = pl.DataFrame({"variant": variant, "bucket": bucket, "value": value})
+    return sample, group_by_buckets(sample)
+
+
+def group_by_buckets(sample: pl.DataFrame) -> pl.DataFrame:
+    return (
+        sample.lazy()
+        .group_by("variant", "bucket")
+        .agg(pl.count().alias("users"), pl.sum("value"))
+        .with_columns(pl.col("value").truediv(pl.col("users")).alias("value_per_user"))
+        .collect()  # ty:ignore[invalid-return-type]
+    )
