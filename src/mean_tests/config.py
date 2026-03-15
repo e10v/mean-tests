@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import argparse
-import tomllib
 from typing import Annotated
 
 import pydantic
@@ -38,20 +36,3 @@ class MeanTestsConfig(pydantic.BaseModel):
     output: pydantic.StrictStr
     control: ControlConfig
     treatments: tuple[TreatmentConfig, ...]
-
-
-def load_config() -> MeanTestsConfig:
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "-c",
-        "--config",
-        dest="config",
-        type=str,
-        default="mean-tests.toml",
-        help="Config file",
-        required=False,
-    )
-    with open(parser.parse_args().config, "rb") as f:
-        raw_config = tomllib.load(f)
-
-    return MeanTestsConfig.model_validate(raw_config)
