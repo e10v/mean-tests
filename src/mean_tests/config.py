@@ -6,7 +6,8 @@ import pydantic
 
 
 Proportion = Annotated[pydantic.StrictFloat, pydantic.Field(gt=0, lt=1)]
-PositiveInt = Annotated[pydantic.StrictInt, pydantic.Field(gt=0)]
+NSimulations = Annotated[pydantic.StrictInt, pydantic.Field(gt=0)]
+NBuckets = Annotated[pydantic.StrictInt, pydantic.Field(ge=10)]
 
 
 class ControlConfig(pydantic.BaseModel):
@@ -29,10 +30,10 @@ class MeanTestsConfig(pydantic.BaseModel):
     model_config = pydantic.ConfigDict(extra="forbid")
 
     rng: pydantic.StrictInt
-    n_simulations: PositiveInt
+    n_simulations: NSimulations
     alpha: Proportion
     power: Proportion
-    buckets: tuple[PositiveInt, ...]
+    buckets: tuple[NBuckets, ...]
     output: pydantic.StrictStr
     control: ControlConfig
     treatments: tuple[TreatmentConfig, ...]
