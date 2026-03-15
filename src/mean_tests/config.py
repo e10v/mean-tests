@@ -5,6 +5,7 @@ from typing import Annotated
 import pydantic
 
 
+PositiveFloat = Annotated[pydantic.StrictFloat, pydantic.Field(gt=0)]
 Proportion = Annotated[pydantic.StrictFloat, pydantic.Field(gt=0, lt=1)]
 NSimulations = Annotated[pydantic.StrictInt, pydantic.Field(gt=0)]
 NBuckets = Annotated[pydantic.StrictInt, pydantic.Field(ge=10)]
@@ -13,7 +14,7 @@ NBuckets = Annotated[pydantic.StrictInt, pydantic.Field(ge=10)]
 class ControlConfig(pydantic.BaseModel):
     model_config = pydantic.ConfigDict(extra="forbid")
 
-    mean: Annotated[pydantic.StrictFloat, pydantic.Field(gt=0)]
+    mean: PositiveFloat
     pareto_users: Proportion
     pareto_value: Proportion
 
@@ -33,6 +34,7 @@ class MeanTestsConfig(pydantic.BaseModel):
     n_simulations: NSimulations
     alpha: Proportion
     power: Proportion
+    pp_diff: PositiveFloat
     buckets: tuple[NBuckets, ...]
     output: pydantic.StrictStr
     control: ControlConfig
