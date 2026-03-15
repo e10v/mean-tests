@@ -15,8 +15,8 @@ class ControlConfig(pydantic.BaseModel):
     model_config = pydantic.ConfigDict(extra="forbid")
 
     mean: PositiveFloat
-    pareto_users: Proportion
-    pareto_value: Proportion
+    top_users: Proportion
+    top_value: Proportion
 
 
 class TreatmentConfig(pydantic.BaseModel):
@@ -34,7 +34,7 @@ class MeanTestsConfig(pydantic.BaseModel):
     n_simulations: NSimulations
     alpha: Proportion
     power: Proportion
-    pp_diff: PositiveFloat
+    pp_diff_default: PositiveFloat
     buckets: tuple[NBuckets, ...]
     output: pydantic.StrictStr
     control: ControlConfig

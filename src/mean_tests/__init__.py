@@ -29,7 +29,7 @@ def main() -> None:
         n_simulations=config.n_simulations,
         alpha=config.alpha,
         power=config.power,
-        pp_diff=config.pp_diff,
+        pp_diff_default=config.pp_diff_default,
         buckets=config.buckets,
         control=config.control,
         treatments=config.treatments,
