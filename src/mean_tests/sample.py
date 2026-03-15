@@ -12,7 +12,7 @@ def calc_sigma(pareto_users: float, pareto_value: float) -> float:
 
 
 def calc_mu(mean: float, sigma: float) -> float:
-    return math.log(mean) - sigma*sigma/2
+    return math.log(mean) - square(sigma)/2
 
 
 def calc_sample_size(
