@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import concurrent.futures
 import functools
+import multiprocessing as mp
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -131,7 +132,8 @@ def run_simulation(
     mu1: float,
     sigma1: float,
 ) -> tea_tasting.experiment.SimulationResults:
-    with concurrent.futures.ProcessPoolExecutor() as executor:
+    spawn = mp.get_context("spawn")
+    with concurrent.futures.ProcessPoolExecutor(mp_context=spawn) as executor:
         raw_results = executor.map(
             functools.partial(
                 analyze_experiment,
