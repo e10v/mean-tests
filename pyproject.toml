@@ -7,7 +7,7 @@ authors = [
 ]
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = ["numpy", "polars", "scipy", "tea_tasting", "tqdm"]
+dependencies = ["numpy", "polars", "pydantic", "scipy", "tea_tasting", "tqdm"]
 
 [project.scripts]
 mean-tests = "mean_tests:main"
