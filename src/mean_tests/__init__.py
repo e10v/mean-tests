@@ -27,14 +27,16 @@ def main() -> None:
     report = mean_tests.simulation.generate_simulation_report(
         rng=config.rng,
         n_simulations=config.n_simulations,
+        user_tests=config.user_tests,
+        bucket_tests=config.bucket_tests,
+        buckets=config.buckets,
         alpha=config.alpha,
         power=config.power,
         pp_diff_default=config.pp_diff_default,
-        buckets=config.buckets,
         control=config.control,
         treatments=config.treatments,
     )
 
     output_path = pathlib.Path(config.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(report, encoding="utf-8")
+    output_path.write_text(report + "\n", encoding="utf-8")

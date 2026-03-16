@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import importlib
 from typing import TYPE_CHECKING
 
+import scipy.stats
+import tea_tasting as tt
 import tea_tasting.utils
 
 
@@ -9,12 +12,36 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
     from typing import Any
 
+    import mean_tests.config
+
+
+def create_experiment(tests: tuple[mean_tests.config.TestConfig, ...]) -> tt.Experiment:
+    return tt.Experiment({
+        test.name: create_metric(test.path, *test.args, **test.kwargs)
+        for test in tests
+    })
+
+
+def create_metric(
+    path: str,
+    *args: str,
+    **kwargs: dict[str, Any],
+) -> tea_tasting.metrics.MetricBase:
+    mod_name, attr_name = path.rsplit(".", 1)
+    module = importlib.import_module(mod_name)
+    metric = getattr(module, attr_name)
+    return metric(*args, **kwargs)
+
 
 def format_pp(pp: float) -> str:
-    return f"{round(pp * 100)}pp"
+    pp = round(pp * 100, 2)
+    rr = round(pp)
+    return f"{rr}pp" if rr == pp else f"{pp}pp"
 
 
-def format_ci(ci: list[float]) -> str:
+def format_binom_ci(k_n: list[int]) -> str:
+    k, n = k_n
+    ci = scipy.stats.binomtest(k, n).proportion_ci(method="wilsoncc")
     low = tea_tasting.utils.format_num(ci[0])
     upp = tea_tasting.utils.format_num(ci[1])
     return f"[{low}, {upp}]"

@@ -7,12 +7,9 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 import polars as pl
-import scipy.stats
-import tea_tasting.experiment
 import tea_tasting.utils
 import tqdm
 
-import mean_tests.metrics
 import mean_tests.sample
 import mean_tests.utils
 
@@ -32,16 +29,18 @@ def generate_simulation_report(
     rng: int | np.random.Generator,
     *,
     n_simulations: int,
+    user_tests: tuple[mean_tests.config.TestConfig, ...],
+    bucket_tests: tuple[mean_tests.config.TestConfig, ...],
+    buckets: tuple[int, ...],
     alpha: float,
     power: float,
     pp_diff_default: float,
-    buckets: tuple[int, ...],
     control: mean_tests.config.ControlConfig,
     treatments: tuple[mean_tests.config.TreatmentConfig, ...],
 ) -> str:
     rng = np.random.default_rng(rng)
-    user_experiment = mean_tests.metrics.get_user_experiment()
-    bucket_experiments = mean_tests.metrics.get_bucket_experiments(buckets)
+    user_experiment = mean_tests.utils.create_experiment(user_tests)
+    bucket_experiment = mean_tests.utils.create_experiment(bucket_tests)
 
     top_users, top_value = control.top_users, control.top_value
     sigma0 = mean_tests.sample.calc_sigma(top_users, top_value)
@@ -84,7 +83,8 @@ def generate_simulation_report(
             rng,
             n_simulations=n_simulations,
             user_experiment=user_experiment,
-            bucket_experiments=bucket_experiments,
+            bucket_experiment=bucket_experiment,
+            buckets=buckets,
             sample_size=sample_size,
             mu0=mu0,
             sigma0=sigma0,
@@ -104,9 +104,10 @@ def generate_simulation_report(
             "total effect": mean_tests.utils.format_pp(pp_diff_total),
             "sample size": sample_size,
         }))
-        report.append(mean_tests.utils.render_dicts(results))
+        report.append(mean_tests.utils.render_dicts(
+            results, text_keys=("test", "level")))
 
-    return "\n\n".join(report) + "\n"
+    return "\n\n".join(report)
 
 
 def run_simulation(
@@ -114,7 +115,8 @@ def run_simulation(
     *,
     n_simulations: int,
     user_experiment: tt.Experiment,
-    bucket_experiments: dict[int, tt.Experiment],
+    bucket_experiment: tt.Experiment,
+    buckets: tuple[int, ...],
     sample_size: int,
     mu0: float,
     sigma0: float,
@@ -123,16 +125,17 @@ def run_simulation(
 ) -> pl.DataFrame:
     simulation = functools.partial(
         analyze_experiment,
+        user_experiment=user_experiment,
+        bucket_experiment=bucket_experiment,
+        buckets=buckets,
         sample_size=sample_size,
         mu0=mu0,
         sigma0=sigma0,
         mu1=mu1,
         sigma1=sigma1,
-        user_experiment=user_experiment,
-        bucket_experiments=bucket_experiments,
     )
-    spawn = mp.get_context("spawn")
-    with concurrent.futures.ProcessPoolExecutor(mp_context=spawn) as executor:
+    mp_context = mp.get_context("spawn")
+    with concurrent.futures.ProcessPoolExecutor(mp_context=mp_context) as executor:
         return pl.concat(tqdm.tqdm(
             executor.map(simulation, rng.spawn(n_simulations)),
             total=n_simulations,
@@ -142,13 +145,14 @@ def run_simulation(
 def analyze_experiment(
     rng: np.random.Generator,
     *,
+    user_experiment: tt.Experiment,
+    bucket_experiment: tt.Experiment,
+    buckets: tuple[int, ...],
     sample_size: int,
     mu0: float,
     sigma0: float,
     mu1: float,
     sigma1: float,
-    user_experiment: tt.Experiment,
-    bucket_experiments: dict[int, tt.Experiment],
 ) -> pl.DataFrame:
     sample = mean_tests.sample.make_sample(
         rng,
@@ -158,15 +162,31 @@ def analyze_experiment(
         mu1=mu1,
         sigma1=sigma1,
     )
-    result = user_experiment.analyze(sample)
-    for n_buckets, bucket_experiment in bucket_experiments.items():
+    results = [analyze_preset(user_experiment, sample, "users")]
+    for n_buckets in buckets:
         grouped_sample = mean_tests.sample.group_by_buckets(
             sample=sample,
             rng=rng,
             n_buckets=n_buckets,
         )
-        result.update(bucket_experiment.analyze(grouped_sample))
-    return result.to_polars().select("metric", "pvalue")
+        results.append(analyze_preset(
+            bucket_experiment,
+            grouped_sample,
+            f"{n_buckets} buckets",
+        ))
+    return pl.concat(results)
+
+
+def analyze_preset(
+    experiment: tt.Experiment,
+    sample: pl.DataFrame,
+    level: str,
+) -> pl.DataFrame:
+    return experiment.analyze(sample).to_polars().select(
+        pl.col("metric").alias("test"),
+        pl.lit(level).alias("level"),
+        "pvalue",
+    )
 
 
 def summarize_results(
@@ -177,31 +197,21 @@ def summarize_results(
     return (
         results.lazy()
         .filter(pl.col("pvalue").is_not_nan())
-        .group_by("metric")
+        .group_by("test", "level")
         .agg(
             pl.col("pvalue").le(alpha).cast(int).sum().alias("null rejected"),
             pl.col("pvalue").count().alias("total"),
         )
-        .select(
-            pl.col("metric").alias("test"),
-            pl.col("null rejected").truediv(pl.col("total")).alias(rate_col),
-            pl.concat_list("null rejected", "total")
-                .map_elements(calc_binom_ci, return_dtype=pl.List(pl.Float64))
-                .alias(rate_col + " ci"),
-        )
-        .sort(rate_col, "test", descending=True)
+        .with_columns(pl.col("null rejected").truediv(pl.col("total")).alias(rate_col))
+        .sort(rate_col, "test", "level", descending=True)
         .select(
             "test",
+            "level",
             pl.col(rate_col).map_elements(tea_tasting.utils.format_num),
-            pl.col(f"{rate_col} ci")
-                .map_elements(mean_tests.utils.format_ci, pl.String),
+            pl.concat_list("null rejected", "total")
+                .map_elements(mean_tests.utils.format_binom_ci, return_dtype=pl.String)
+                .alias(rate_col + " ci"),
         )
         .collect()
         .to_dicts()  # ty:ignore[unresolved-attribute]
     )
-
-
-def calc_binom_ci(k_n: list[int]) -> list[float]:
-    k, n = k_n
-    low, upp = scipy.stats.binomtest(k, n).proportion_ci(method="wilsoncc")
-    return [low, upp]
