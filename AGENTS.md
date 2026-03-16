@@ -1,5 +1,24 @@
 # AGENTS
 
+## Project structure
+
+- `src/mean_tests/`: project code:
+    - `src/mean_tests/__init__.py`: CLI entry point.
+    - `src/mean_tests/config.py`: config schema.
+    - `src/mean_tests/sample.py`: sample generation and sample-size helpers.
+    - `src/mean_tests/simulation.py`: core engine for simulation and report generation.
+    - `src/mean_tests/utils.py`: helpers for experiment creation and result rendering.
+- `mean-tests.toml`: default config.
+- `reports/simulation.md`: default simulation report path.
+
+## Flow
+
+- `uv run mean-tests` runs the script that:
+    - Parses command-line arguments, loads the config, and validates it.
+    - Loops over treatments and runs Monte Carlo simulation.
+    - Summarizes simulation results and writes the report file.
+- Never run this script yourself. It's time- and resource-expensive.
+
 ## Code style
 
 - Follow PEP 8.
