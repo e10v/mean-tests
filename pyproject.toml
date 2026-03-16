@@ -25,6 +25,7 @@ extend-select = [
     "I", "ICN", "INP", "INT", "ISC", "N", "NPY", "PERF", "PGH", "PIE", "PL", "Q", "RET",
     "RSE", "RUF", "S", "SIM", "SLF", "T20", "TC", "TID", "TRY", "UP", "W",
 ]
+ignore = ["TRY003"]
 
 [tool.ruff.lint.isort]
 force-sort-within-sections = true
