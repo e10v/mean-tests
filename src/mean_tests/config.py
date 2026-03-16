@@ -49,3 +49,47 @@ class MeanTestsConfig(pydantic.BaseModel):
     treatments: tuple[TreatmentConfig, ...]
     user_tests: tuple[TestConfig, ...]
     bucket_tests: tuple[TestConfig, ...]
+
+    @pydantic.model_validator(mode="after")
+    def validate_config(self) -> MeanTestsConfig:
+        validate_unique_names(self.treatments, "treatments")
+        validate_unique_names(self.user_tests, "user_tests")
+        validate_unique_names(self.bucket_tests, "bucket_tests")
+
+        top_value = self.control.top_value
+        for treatment in self.treatments:
+            name = treatment.name
+            pp_diff_top = treatment.pp_diff_top
+            pp_diff_bottom = treatment.pp_diff_bottom
+            if pp_diff_top + top_value <= 0:
+                raise ValueError(
+                    "treatment.pp_diff_top + control.top_value == "
+                    f"{pp_diff_top + top_value} for treatment {name}, "
+                    "should be greater than 0",
+                )
+            if pp_diff_bottom + 1 - top_value <= 0:
+                raise ValueError(
+                    "treatment.pp_diff_bottom + 1 - control.top_value == "
+                    f"{pp_diff_bottom + 1 - top_value} for treatment {name}, "
+                    "should be greater than 0",
+                )
+
+        return self
+
+
+def validate_unique_names(
+    configs: tuple[TreatmentConfig, ...] | tuple[TestConfig, ...],
+    config_name: str,
+) -> None:
+    seen = set()
+    duplicates = set()
+    for config in configs:
+        if config.name in seen and config.name not in duplicates:
+            duplicates.add(config.name)
+        seen.add(config.name)
+
+    if duplicates:
+        raise ValueError(
+            f"{config_name} names must be unique; duplicates: "
+            + ", ".join(list(duplicates)),
+        )
