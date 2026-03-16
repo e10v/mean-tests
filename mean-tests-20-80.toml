@@ -1,4 +1,4 @@
-output = "reports/simulation-20-80.md"
+output = "reports/mean-tests-20-80.md"
 
 rng = 42
 n_simulations = 10_000
