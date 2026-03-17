@@ -34,7 +34,7 @@ def generate_simulation_report(
     buckets: tuple[int, ...],
     alpha: float,
     power: float,
-    pp_diff_default: float,
+    rel_diff_default: float,
     control: mean_tests.config.ControlConfig,
     treatments: tuple[mean_tests.config.TreatmentConfig, ...],
 ) -> str:
@@ -46,7 +46,7 @@ def generate_simulation_report(
     sigma0 = mean_tests.sample.calc_sigma(top_users, top_value)
     mu0 = mean_tests.sample.calc_mu(control.mean, sigma0)
 
-    report = ["# Simulation"]
+    report = ["# Comparison of two-sample mean tests"]
     report.append(mean_tests.utils.render_dict({
         "number of simulations": n_simulations,
         "alpha": alpha,
@@ -56,26 +56,27 @@ def generate_simulation_report(
     }))
 
     for treatment in treatments:
-        pp_diff_top, pp_diff_bottom = treatment.pp_diff_top, treatment.pp_diff_bottom
-        pp_diff_total = pp_diff_top + pp_diff_bottom
-        if abs(pp_diff_total) > PRECISION:
-            pp_diff = pp_diff_total
+        rel_diff_top = treatment.rel_diff_top
+        rel_diff_bottom = treatment.rel_diff_bottom
+        rel_diff_total = rel_diff_top + rel_diff_bottom
+        if abs(rel_diff_total) > PRECISION:
+            rel_diff = rel_diff_total
             rate_col = "power"
         else:
-            pp_diff = pp_diff_default
+            rel_diff = rel_diff_default
             rate_col = "type I error"
 
         sigma1 = mean_tests.sample.calc_sigma(
             top_users=control.top_users,
-            top_value=(top_value + pp_diff_top) / (1 + pp_diff_total),
+            top_value=(top_value + rel_diff_top) / (1 + rel_diff_total),
         )
-        mu1 = mean_tests.sample.calc_mu(control.mean * (1 + pp_diff_total), sigma1)
+        mu1 = mean_tests.sample.calc_mu(control.mean * (1 + rel_diff_total), sigma1)
         sample_size = mean_tests.sample.calc_sample_size(
             alpha=alpha,
             power=power,
             sigma0=sigma0,
             sigma1=sigma1,
-            pp_diff=pp_diff,
+            rel_diff=rel_diff,
         )
 
         tqdm.tqdm.write(treatment.name)
@@ -99,13 +100,12 @@ def generate_simulation_report(
 
         report.append(f"## {treatment.name}")
         report.append(mean_tests.utils.render_dict({
-            "effect on top users": mean_tests.utils.format_pp(pp_diff_top),
-            "effect on bottom users": mean_tests.utils.format_pp(pp_diff_bottom),
-            "total effect": mean_tests.utils.format_pp(pp_diff_total),
+            "top users effect (relative to total)": rel_diff_top,
+            "bottom users effect (relative to total)": rel_diff_bottom,
+            "total relative effect": rel_diff_total,
             "sample size": sample_size,
         }))
-        report.append(mean_tests.utils.render_dicts(
-            results, text_keys=("test", "level")))
+        report.append(mean_tests.utils.render_dicts(results))
 
     return "\n\n".join(report)
 

@@ -32,7 +32,7 @@ def main() -> None:
         buckets=config.buckets,
         alpha=config.alpha,
         power=config.power,
-        pp_diff_default=config.pp_diff_default,
+        rel_diff_default=config.rel_diff_default,
         control=config.control,
         treatments=config.treatments,
     )
