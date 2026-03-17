@@ -22,8 +22,8 @@ class TreatmentConfig(pydantic.BaseModel):
     model_config = pydantic.ConfigDict(extra="forbid")
 
     name: pydantic.StrictStr
-    pp_diff_top: pydantic.StrictFloat
-    pp_diff_bottom: pydantic.StrictFloat
+    rel_diff_top: pydantic.StrictFloat
+    rel_diff_bottom: pydantic.StrictFloat
 
 
 class TestConfig(pydantic.BaseModel):
@@ -44,7 +44,7 @@ class MeanTestsConfig(pydantic.BaseModel):
     buckets: tuple[IntGE10, ...]
     alpha: Proportion
     power: Proportion
-    pp_diff_default: PositiveFloat
+    rel_diff_default: PositiveFloat
     control: ControlConfig
     treatments: tuple[TreatmentConfig, ...]
     user_tests: tuple[TestConfig, ...]
@@ -59,18 +59,18 @@ class MeanTestsConfig(pydantic.BaseModel):
         top_value = self.control.top_value
         for treatment in self.treatments:
             name = treatment.name
-            pp_diff_top = treatment.pp_diff_top
-            pp_diff_bottom = treatment.pp_diff_bottom
-            if pp_diff_top + top_value <= 0:
+            rel_diff_top = treatment.rel_diff_top
+            rel_diff_bottom = treatment.rel_diff_bottom
+            if rel_diff_top + top_value <= 0:
                 raise ValueError(
-                    "treatment.pp_diff_top + control.top_value == "
-                    f"{pp_diff_top + top_value} for treatment {name}, "
+                    "treatment.rel_diff_top + control.top_value == "
+                    f"{rel_diff_top + top_value} for treatment {name}, "
                     "should be greater than 0",
                 )
-            if pp_diff_bottom + 1 - top_value <= 0:
+            if rel_diff_bottom + 1 - top_value <= 0:
                 raise ValueError(
-                    "treatment.pp_diff_bottom + 1 - control.top_value == "
-                    f"{pp_diff_bottom + 1 - top_value} for treatment {name}, "
+                    "treatment.rel_diff_bottom + 1 - control.top_value == "
+                    f"{rel_diff_bottom + 1 - top_value} for treatment {name}, "
                     "should be greater than 0",
                 )
 
