@@ -33,12 +33,6 @@ def create_metric(
     return metric(*args, **kwargs)
 
 
-def format_pp(pp: float) -> str:
-    pp = round(pp * 100, 2)
-    rr = round(pp)
-    return f"{rr}pp" if rr == pp else f"{pp}pp"
-
-
 def format_binom_ci(k_n: list[int]) -> str:
     k, n = k_n
     ci = scipy.stats.binomtest(k, n).proportion_ci(method="wilsoncc")
