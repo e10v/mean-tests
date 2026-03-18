@@ -1,11 +1,14 @@
-output = "reports/mean-tests.md"
+output = "reports/default.md"
 
 rng = 42
 n_simulations = 10_000
-alpha = 0.05  # Type I error rate
-power = 0.8  # Reference power for sample size calculation
-rel_diff_default = 0.05  # Reference uplift for sample size calculation in A/A simulations
 buckets = [10, 20, 50, 100]
+
+[sample]
+alpha = 0.05  # Type I error rate for sample size calculation and estimation of power
+power = 0.8  # Reference power for sample size calculation
+ratio = 1.0  # Treatment-to-control allocation ratio
+rel_diff_default = 0.05  # Reference uplift for sample size calculation in A/A simulations
 
 [control]
 mean = 1.0
@@ -44,6 +47,18 @@ args = [ "value" ]
 kwargs = { use_t = true, equal_var = false }
 
 [[user_tests]]
+name = "Student's t-test"
+path = "tea_tasting.Mean"
+args = [ "value" ]
+kwargs = { use_t = true, equal_var = true }
+
+[[user_tests]]
+name = "Z-test (unpooled)"
+path = "tea_tasting.Mean"
+args = [ "value" ]
+kwargs = { use_t = false, equal_var = false }
+
+[[user_tests]]
 name = "Mann–Whitney U"
 path = "tea_tasting.MannWhitneyU"
 args = [ "value" ]
@@ -54,6 +69,18 @@ name = "Welch's t-test"
 path = "tea_tasting.RatioOfMeans"
 args = [ "value", "users" ]
 kwargs = { use_t = true, equal_var = false }
+
+[[bucket_tests]]
+name = "Student's t-test"
+path = "tea_tasting.RatioOfMeans"
+args = [ "value", "users" ]
+kwargs = { use_t = true, equal_var = true }
+
+[[bucket_tests]]
+name = "Z-test (unpooled)"
+path = "tea_tasting.RatioOfMeans"
+args = [ "value", "users" ]
+kwargs = { use_t = false, equal_var = false }
 
 [[bucket_tests]]
 name = "Mann–Whitney U"

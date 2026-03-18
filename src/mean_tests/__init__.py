@@ -15,7 +15,7 @@ def main() -> None:
         "--config",
         dest="config",
         type=str,
-        default="mean-tests.toml",
+        default="configs/default.toml",
         help="Config file",
         required=False,
     )
@@ -30,9 +30,7 @@ def main() -> None:
         user_tests=config.user_tests,
         bucket_tests=config.bucket_tests,
         buckets=config.buckets,
-        alpha=config.alpha,
-        power=config.power,
-        rel_diff_default=config.rel_diff_default,
+        sample=config.sample,
         control=config.control,
         treatments=config.treatments,
     )

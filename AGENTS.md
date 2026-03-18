@@ -2,14 +2,14 @@
 
 ## Project structure
 
-- `src/mean_tests/`: project code:
+- `src/mean_tests/`: project code.
     - `src/mean_tests/__init__.py`: CLI entry point.
     - `src/mean_tests/config.py`: config schema.
     - `src/mean_tests/sample.py`: sample generation and sample-size helpers.
     - `src/mean_tests/simulation.py`: core engine for simulation and report generation.
     - `src/mean_tests/utils.py`: helpers for experiment creation and result rendering.
-- `mean-tests.toml`: default config.
-- `reports/simulation.md`: default simulation report path.
+- `configs/`: CLI configs.
+- `reports/`: generated reports.
 
 ## Flow
 

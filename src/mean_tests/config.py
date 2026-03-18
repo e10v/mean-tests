@@ -10,6 +10,15 @@ Proportion = Annotated[pydantic.StrictFloat, pydantic.Field(gt=0, lt=1)]
 IntGE10 = Annotated[pydantic.StrictInt, pydantic.Field(ge=10)]
 
 
+class SampleConfig(pydantic.BaseModel):
+    model_config = pydantic.ConfigDict(extra="forbid")
+
+    alpha: Proportion
+    power: Proportion
+    ratio: PositiveFloat
+    rel_diff_default: PositiveFloat
+
+
 class ControlConfig(pydantic.BaseModel):
     model_config = pydantic.ConfigDict(extra="forbid")
 
@@ -42,9 +51,7 @@ class MeanTestsConfig(pydantic.BaseModel):
     rng: pydantic.StrictInt
     n_simulations: IntGE10
     buckets: tuple[IntGE10, ...]
-    alpha: Proportion
-    power: Proportion
-    rel_diff_default: PositiveFloat
+    sample: SampleConfig
     control: ControlConfig
     treatments: tuple[TreatmentConfig, ...]
     user_tests: tuple[TestConfig, ...]
