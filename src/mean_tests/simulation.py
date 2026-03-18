@@ -3,13 +3,15 @@ from __future__ import annotations
 import concurrent.futures
 import functools
 import multiprocessing as mp
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Annotated
 
 import numpy as np
 import polars as pl
+import pydantic
 import tea_tasting.utils
 import tqdm
 
+import mean_tests.config
 import mean_tests.sample
 import mean_tests.utils
 
@@ -19,10 +21,21 @@ if TYPE_CHECKING:
 
     import tea_tasting as tt
 
-    import mean_tests.config  # noqa: TC004
-
 
 PRECISION = 0.00001
+
+
+PositiveInt = Annotated[pydantic.StrictInt, pydantic.Field(gt=0)]
+
+class SampleParams(pydantic.BaseModel):
+    model_config = pydantic.ConfigDict(extra="forbid")
+
+    sample_size: PositiveInt
+    ratio: mean_tests.config.PositiveFloat
+    mu0: pydantic.StrictFloat
+    sigma0: mean_tests.config.PositiveFloat
+    mu1: pydantic.StrictFloat
+    sigma1: mean_tests.config.PositiveFloat
 
 
 def generate_simulation_report(
@@ -32,9 +45,7 @@ def generate_simulation_report(
     user_tests: tuple[mean_tests.config.TestConfig, ...],
     bucket_tests: tuple[mean_tests.config.TestConfig, ...],
     buckets: tuple[int, ...],
-    alpha: float,
-    power: float,
-    rel_diff_default: float,
+    sample: mean_tests.config.SampleConfig,
     control: mean_tests.config.ControlConfig,
     treatments: tuple[mean_tests.config.TreatmentConfig, ...],
 ) -> str:
@@ -49,8 +60,9 @@ def generate_simulation_report(
     report = ["# Comparison of two-sample mean tests"]
     report.append(mean_tests.utils.render_dict({
         "number of simulations": n_simulations,
-        "alpha": alpha,
-        "power": power,
+        "alpha": sample.alpha,
+        "reference power": sample.power,
+        "treatment-to-control allocation ratio": sample.ratio,
         "top users": top_users,
         "value created by top users": top_value,
     }))
@@ -63,7 +75,7 @@ def generate_simulation_report(
             rel_diff = rel_diff_total
             rate_col = "power"
         else:
-            rel_diff = rel_diff_default
+            rel_diff = sample.rel_diff_default
             rate_col = "type I error"
 
         sigma1 = mean_tests.sample.calc_sigma(
@@ -72,8 +84,9 @@ def generate_simulation_report(
         )
         mu1 = mean_tests.sample.calc_mu(control.mean * (1 + rel_diff_total), sigma1)
         sample_size = mean_tests.sample.calc_sample_size(
-            alpha=alpha,
-            power=power,
+            alpha=sample.alpha,
+            power=sample.power,
+            ratio=sample.ratio,
             sigma0=sigma0,
             sigma1=sigma1,
             rel_diff=rel_diff,
@@ -86,15 +99,18 @@ def generate_simulation_report(
             user_experiment=user_experiment,
             bucket_experiment=bucket_experiment,
             buckets=buckets,
-            sample_size=sample_size,
-            mu0=mu0,
-            sigma0=sigma0,
-            mu1=mu1,
-            sigma1=sigma1,
+            sample_params=SampleParams(
+                sample_size=sample_size,
+                ratio=sample.ratio,
+                mu0=mu0,
+                sigma0=sigma0,
+                mu1=mu1,
+                sigma1=sigma1,
+            ),
         )
         results = summarize_results(
             simulation_results,
-            alpha=alpha,
+            alpha=sample.alpha,
             rate_col=rate_col,
         )
 
@@ -117,22 +133,14 @@ def run_simulation(
     user_experiment: tt.Experiment,
     bucket_experiment: tt.Experiment,
     buckets: tuple[int, ...],
-    sample_size: int,
-    mu0: float,
-    sigma0: float,
-    mu1: float,
-    sigma1: float,
+    sample_params: SampleParams,
 ) -> pl.DataFrame:
     simulation = functools.partial(
         analyze_experiment,
         user_experiment=user_experiment,
         bucket_experiment=bucket_experiment,
         buckets=buckets,
-        sample_size=sample_size,
-        mu0=mu0,
-        sigma0=sigma0,
-        mu1=mu1,
-        sigma1=sigma1,
+        sample_params=sample_params,
     )
     mp_context = mp.get_context("spawn")
     with concurrent.futures.ProcessPoolExecutor(mp_context=mp_context) as executor:
@@ -148,19 +156,16 @@ def analyze_experiment(
     user_experiment: tt.Experiment,
     bucket_experiment: tt.Experiment,
     buckets: tuple[int, ...],
-    sample_size: int,
-    mu0: float,
-    sigma0: float,
-    mu1: float,
-    sigma1: float,
+    sample_params: SampleParams,
 ) -> pl.DataFrame:
     sample = mean_tests.sample.make_sample(
         rng,
-        sample_size=sample_size,
-        mu0=mu0,
-        sigma0=sigma0,
-        mu1=mu1,
-        sigma1=sigma1,
+        sample_size=sample_params.sample_size,
+        ratio=sample_params.ratio,
+        mu0=sample_params.mu0,
+        sigma0=sample_params.sigma0,
+        mu1=sample_params.mu1,
+        sigma1=sample_params.sigma1,
     )
     results = [analyze_preset(user_experiment, sample, "users")]
     for n_buckets in buckets:

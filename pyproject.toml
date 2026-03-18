@@ -32,7 +32,7 @@ force-sort-within-sections = true
 lines-after-imports = 2
 
 [tool.ruff.lint.pylint]
-max-args = 10
+max-args = 8
 
 [tool.tombi]
 schema.strict = false

@@ -22,6 +22,7 @@ def calc_mu(mean: float, sigma: float) -> float:
 def calc_sample_size(
     alpha: float,
     power: float,
+    ratio: float,
     sigma0: float,
     sigma1: float,
     rel_diff: float,
@@ -29,7 +30,8 @@ def calc_sample_size(
     z_crit = scipy.stats.norm.isf(alpha/2) + scipy.stats.norm.ppf(power)
     rel_var0 = math.exp(square(sigma0)) - 1
     rel_var1 = (math.exp(square(sigma1)) - 1) * square(1 + rel_diff)
-    return round(2 * square(z_crit) * (rel_var0 + rel_var1) / square(rel_diff))
+    rel_var = (1 + ratio) * (rel_var0 + rel_var1/ratio)
+    return round(square(z_crit) * rel_var / square(rel_diff))
 
 
 def square(x: float) -> float:
@@ -40,12 +42,13 @@ def make_sample(
     rng: np.random.Generator,
     *,
     sample_size: int,
+    ratio: float,
     mu0: float,
     sigma0: float,
     mu1: float,
     sigma1: float,
 ) -> pl.DataFrame:
-    variant = rng.integers(2, size=sample_size)
+    variant = rng.binomial(1, ratio / (1 + ratio), size=sample_size)
     value = rng.lognormal(mu0 + variant*(mu1 - mu0), sigma0 + variant*(sigma1 - sigma0))
     return pl.DataFrame({"variant": variant, "value": value})
 
