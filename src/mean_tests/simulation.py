@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import concurrent.futures
 import functools
+import math
 import multiprocessing as mp
 from typing import TYPE_CHECKING, Annotated
 
@@ -22,7 +23,7 @@ if TYPE_CHECKING:
     import tea_tasting as tt
 
 
-PRECISION = 0.00001
+ABS_TOL = 1e-5
 
 
 PositiveInt = Annotated[pydantic.StrictInt, pydantic.Field(gt=0)]
@@ -71,12 +72,12 @@ def generate_simulation_report(
         rel_diff_top = treatment.rel_diff_top
         rel_diff_bottom = treatment.rel_diff_bottom
         rel_diff_total = rel_diff_top + rel_diff_bottom
-        if abs(rel_diff_total) > PRECISION:
-            rel_diff = rel_diff_total
-            rate_col = "power"
-        else:
+        if math.isclose(rel_diff_total, 0, abs_tol=ABS_TOL):
             rel_diff = sample.rel_diff_default
             rate_col = "type I error"
+        else:
+            rel_diff = rel_diff_total
+            rate_col = "power"
 
         sigma1 = mean_tests.sample.calc_sigma(
             top_users=control.top_users,

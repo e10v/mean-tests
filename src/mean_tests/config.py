@@ -98,5 +98,5 @@ def validate_unique_names(
     if duplicates:
         raise ValueError(
             f"{config_name} names must be unique; duplicates: "
-            + ", ".join(list(duplicates)),
+            + ", ".join(sorted(duplicates)),
         )
