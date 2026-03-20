@@ -25,7 +25,7 @@ def create_experiment(tests: tuple[mean_tests.config.TestConfig, ...]) -> tt.Exp
 def create_metric(
     path: str,
     *args: str,
-    **kwargs: dict[str, Any],
+    **kwargs: Any,
 ) -> tea_tasting.metrics.MetricBase:
     mod_name, attr_name = path.rsplit(".", 1)
     module = importlib.import_module(mod_name)
