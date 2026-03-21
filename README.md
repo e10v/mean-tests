@@ -49,11 +49,68 @@ We want a test with high statistical power while keeping the type I error rate a
 
 ## Simulation
 
-TODO
+In real-world scenarios, metric distribution among the users is highly skewed and follows the Pareto-like rule: 10–30% of users create 70–90% of value (revenue, transactions, sessions, etc.). For convenience, we will call these 10–30% of users the "top" users, and the rest of users the "bottom" users. Usually, the treatment effect is unevenly distributed among the users. Sometimes, it even oppositely directed for top and bottom users, with near zero average effect.
+
+The code in this repository simulates many experiments with skewed data sampled from lognormal distribution. The skewness is determined by the Pareto-like rule: top P share of users create Q share of value. The treatment effect is defined separately for top and bottom users. Sample size is estimated to target the power `0.8`.
+
+Five types of treatments are simulated, `10_000` times each:
+
+1. Positive effect on top users, negative effect on bottom users, and zero average effect in total.
+2. Negative effect on top users, positive effect on bottom users, and zero average effect in total.
+3. Positive effect on all users.
+4. Positive effect on top users, zero average effect on bottom users, and positive effect in total.
+5. Zero average effect on top users, positive effect on bottom users, and positive effect in total.
+
+The first two are A/A simulations (two sample means are equal): the proportion of p-values below the significance level `alpha` is the type I error rate. The last three are A/B simulations (two sample means are unequal): the proportion of p-values below the significance level `alpha` is the statistical power.
+
+The [default](configs/default.toml) configuration parameters:
+
+- Skewness: 30% of top users create 70% of value.
+- Significance level `0.05`.
+- Equal allocation of users between variants.
+- Relative effect size 5%:
+    - In A/A simulations: reference effect size for sample size calculation.
+    - In A/B simulations: average effect size in treatment relative to control.
+
+Other configurations, with difference from default:
+
+- [smaller-alpha](configs/smaller-alpha.toml): significance level `0.01`.
+- [smaller-diff](configs/smaller-diff.toml): effect size 2%.
+- [stronger-skewness](configs/stronger-skewness.toml): 20% of top users create 80% of value.
+- [unbalanced-ratio](configs/unbalanced-ratio.toml): 1:4 treatment to control users allocation.
 
 ## How to reproduce the results
 
-TODO
+[Install uv](https://github.com/astral-sh/uv?tab=readme-ov-file#installation) (if not already installed).
+
+Clone the repository and change into the directory:
+
+```bash
+git clone git@github.com:e10v/mean-tests.git && cd mean-tests
+```
+
+Install dependencies:
+
+```bash
+uv sync --frozen
+```
+
+Run the simulation:
+
+```bash
+uv run mean-tests -c config/default.toml
+```
+
+Optionally run the simulations with different configurations:
+
+```bash
+uv run mean-tests -c configs/smaller-alpha.toml
+uv run mean-tests -c configs/smaller-diff.toml
+uv run mean-tests -c configs/stronger-skewness.toml
+uv run mean-tests -c configs/unbalanced-ratio.toml
+```
+
+See the generated reports in the `reports/` directory.
 
 ## Discussion of the results
 
