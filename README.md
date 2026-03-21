@@ -125,7 +125,9 @@ Third, bucketization can preserve the behavior of mean tests, but only up to a p
 
 ## Conclusions
 
-TODO
+If the goal is to compare the average value per user, Welch's t-test is the safest default in these simulations. It keeps the type I error rate close to the target, reaches the planned power, and stays reliable when the allocation ratio is unbalanced. Student's t-test is less robust when variances differ, while the unpooled z-test is usually similar to Welch's t-test but is a less natural default in practice.
+
+Bucketization is a practical compromise, not a better method. With `50` or `100` buckets per variant, bucket-level mean tests are usually close to user-level results; with `10` or `20` buckets, power drops and the bucket-level unpooled z-test becomes slightly liberal. Mann–Whitney U is not a test of means and is unreliable here at both user and bucket levels.
 
 ## Note on "outliers"
 
