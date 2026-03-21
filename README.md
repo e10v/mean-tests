@@ -49,21 +49,21 @@ We want a test with high statistical power while keeping the type I error rate a
 
 ## Simulation
 
-In real-world scenarios, metric distribution among the users is highly skewed and follows the Pareto-like rule: 10–30% of users create 70–90% of value (revenue, transactions, sessions, etc.). For convenience, we will call these 10–30% of users the "top" users, and the rest of users the "bottom" users. Usually, the treatment effect is unevenly distributed among the users. Sometimes, it even oppositely directed for top and bottom users, with near zero average effect.
+In real-world scenarios, the distribution of a metric across users is often highly skewed and follows a Pareto-like pattern: 10–30% of users create 70–90% of the value (revenue, transactions, sessions, and so on). For convenience, we call these 10–30% of users the "top" users and the rest the "bottom" users. The treatment effect is often distributed unevenly across users. Sometimes, it even goes in opposite directions for top and bottom users, with a near-zero average effect.
 
-The code in this repository simulates many experiments with skewed data sampled from lognormal distribution. The skewness is determined by the Pareto-like rule: top P share of users create Q share of value. The treatment effect is defined separately for top and bottom users. Sample size is estimated to target the power `0.8`.
+The code in this repository simulates many experiments with skewed data sampled from a lognormal distribution. The skewness is determined by a Pareto-like rule: the top `P` share of users creates the `Q` share of value. The treatment effect is defined separately for top and bottom users. Sample size is estimated to target a power of `0.8`.
 
 Five types of treatments are simulated, `10_000` times each:
 
-1. Positive effect on top users, negative effect on bottom users, and zero average effect in total.
-2. Negative effect on top users, positive effect on bottom users, and zero average effect in total.
+1. Positive effect on top users, negative effect on bottom users, and zero overall average effect.
+2. Negative effect on top users, positive effect on bottom users, and zero overall average effect.
 3. Positive effect on all users.
-4. Positive effect on top users, zero average effect on bottom users, and positive effect in total.
-5. Zero average effect on top users, positive effect on bottom users, and positive effect in total.
+4. Positive effect on top users, zero average effect on bottom users, and a positive overall effect.
+5. Zero average effect on top users, positive effect on bottom users, and a positive overall effect.
 
-The first two are A/A simulations (two sample means are equal): the proportion of p-values below the significance level `alpha` is the type I error rate. The last three are A/B simulations (two sample means are unequal): the proportion of p-values below the significance level `alpha` is the statistical power.
+The first two are labeled A/A because the overall population means are equal, even though the treatment effect differs between top and bottom users. For these cases, the proportion of p-values below the significance level `alpha` estimates the type I error rate. The last three are A/B simulations with unequal overall population means, so the proportion of p-values below the significance level `alpha` estimates the statistical power.
 
-The [default](configs/default.toml) configuration parameters:
+The [default](configs/default.toml) configuration uses the following parameters:
 
 - Skewness: 30% of top users create 70% of value.
 - Significance level `0.05`.
@@ -72,16 +72,17 @@ The [default](configs/default.toml) configuration parameters:
     - In A/A simulations: reference effect size for sample size calculation.
     - In A/B simulations: average effect size in treatment relative to control.
 
-Other configurations, with difference from default:
+Other configurations differ from the default as follows:
 
 - [smaller-alpha](configs/smaller-alpha.toml): significance level `0.01`.
 - [smaller-diff](configs/smaller-diff.toml): effect size 2%.
 - [stronger-skewness](configs/stronger-skewness.toml): 20% of top users create 80% of value.
-- [unbalanced-ratio](configs/unbalanced-ratio.toml): 1:4 treatment to control users allocation.
+- [unbalanced-ratio](configs/unbalanced-ratio.toml): 1:4 treatment-to-control
+  user allocation.
 
 ## How to reproduce the results
 
-[Install uv](https://github.com/astral-sh/uv?tab=readme-ov-file#installation) (if not already installed).
+[Install uv](https://github.com/astral-sh/uv?tab=readme-ov-file#installation) if it is not already installed.
 
 Clone the repository and change into the directory:
 
@@ -98,7 +99,7 @@ uv sync --frozen
 Run the simulation:
 
 ```bash
-uv run mean-tests -c config/default.toml
+uv run mean-tests -c configs/default.toml
 ```
 
 Optionally run the simulations with different configurations:
