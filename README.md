@@ -19,12 +19,24 @@ There is also a Z-test of means with *pooled* variance, assuming equal variances
 
 ### Bucket tests for large scale experiments
 
-In large-scale experiments, it becomes costly to store and analyze data on user level. Often the bucket-level analysis is applied:
+In large-scale experiments, it becomes costly to store and analyze data at user level. Often the bucket-level analysis is applied:
 
-- Variants are still randomized on a user level.
+- Variants are still randomized at a user level.
 - Users are randomly distributed between buckets using hash-functions, typically about 100 buckets per variant.
+- Metrics are aggregated and analyzed at bucket level. For example, average revenue per average number of users in a bucket.
+
+Bucket-level analysis still conforms to independence assumption.
 
 ### Mann–Whitney U test
+
+Mann–Whitney U test is not a conventional choice if we want to check the total amount of some value differ between two variants. It's not a test of means. It tests the null hypothesis that probability of `x > y` is equal to probability of `x < y` for any pair `x` and `y` from control and treatment variants respectively.
+
+*User-level* Mann–Whitney U test is an obvious bad choice, but some teams use the *bucket-level* Mann–Whitney U test as a test of means. Their explanation is the following:
+
+- Bucketization makes the distribution closer to normal.
+- Under assumption of equal variances, Mann–Whitney U test can be used to test the equality of means of two normally distributed random variables.
+
+### Problem formulation
 
 TODO
 
