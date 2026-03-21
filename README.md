@@ -31,14 +31,21 @@ Bucket-level analysis still conforms to independence assumption.
 
 Mann–Whitney U test is not a conventional choice if we want to check the total amount of some value differ between two variants. It's not a test of means. It tests the null hypothesis that probability of `x > y` is equal to probability of `x < y` for any pair `x` and `y` from control and treatment variants respectively.
 
-*User-level* Mann–Whitney U test is an obvious bad choice, but some teams use the *bucket-level* Mann–Whitney U test as a test of means. Their explanation is the following:
+*User-level* Mann–Whitney U test is an obvious bad choice, but some teams use the *bucket-level* Mann–Whitney U test as a test of means. Their reasoning is the following:
 
 - Bucketization makes the distribution closer to normal.
 - Under assumption of equal variances, Mann–Whitney U test can be used to test the equality of means of two normally distributed random variables.
 
 ### Problem formulation
 
-TODO
+This repository compares the following statistical test both at user- and bucket-level in the context of the analysis of two-sample means:
+
+- Welch's t-test,
+- Student's t-test,
+- Z-test of means with unpooled variance,
+- Mann–Whitney U test.
+
+We want a test with high statistical power while keeping the type I error rate at the desired level (for example, `0.05`).
 
 ## Simulation
 
