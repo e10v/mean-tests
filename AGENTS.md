@@ -38,6 +38,7 @@
 
 - When editing readme, follow the Microsoft Writing Style Guide and Google developer documentation style guide.
 - Docstrings are not required.
+- Don't use new line to limit line length in Markdown files.
 
 ## Code checking
 
