@@ -13,9 +13,9 @@ In A/B tests, we usually want to check whether the average amount of some value 
 Welch's t-test is a typical choice for the analysis of means in a two-sample experiment. It is designed for unequal population variances and assumes that the variances are unknown. Alternative choices are:
 
 - Student's t-test, which assumes equal variances.
-- A z-test of means with unpooled variance, which assumes that the population variances are known.
+- A z-test of means with unpooled variance, which uses a normal approximation to the distribution of the test statistic.
 
-There is also a z-test of means with *pooled* variance, which assumes that the variances are known and equal. I do not consider it here because it would not provide any additional meaningful insights into test applicability.
+There is also a z-test of means with *pooled* variance, which assumes equal variances and uses a normal approximation to the distribution of the test statistic. I do not consider it here because it would not provide any additional meaningful insights into test applicability.
 
 ### Bucket tests for large-scale experiments
 
