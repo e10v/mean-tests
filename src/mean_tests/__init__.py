@@ -25,8 +25,7 @@ def main() -> None:
     config = mean_tests.config.MeanTestsConfig.model_validate(raw_config)
 
     report = mean_tests.simulation.generate_simulation_report(
-        rng=config.rng,
-        n_simulations=config.n_simulations,
+        simulation=config.simulation,
         user_tests=config.user_tests,
         bucket_tests=config.bucket_tests,
         buckets=config.buckets,
