@@ -47,14 +47,13 @@ def generate_simulation_report(
     bucket_tests: tuple[mean_tests.config.TestConfig, ...],
     buckets: tuple[int, ...],
     sample: mean_tests.config.SampleConfig,
-    control: mean_tests.config.ControlConfig,
     treatments: tuple[mean_tests.config.TreatmentConfig, ...],
 ) -> str:
     rng = np.random.default_rng(rng)
     user_experiment = mean_tests.utils.create_experiment(user_tests)
     bucket_experiment = mean_tests.utils.create_experiment(bucket_tests)
 
-    top_users, top_value = control.top_users, control.top_value
+    top_users, top_value = sample.top_users, sample.top_value
     sigma0 = mean_tests.sample.calc_sigma(top_users, top_value)
     mu0 = mean_tests.sample.calc_mu(sigma0)
 
@@ -80,7 +79,7 @@ def generate_simulation_report(
             rate_col = "power"
 
         sigma1 = mean_tests.sample.calc_sigma(
-            top_users=control.top_users,
+            top_users=sample.top_users,
             top_value=(top_value + rel_diff_top) / (1 + rel_diff_total),
         )
         mu1 = mean_tests.sample.calc_mu(sigma1, 1 + rel_diff_total)
