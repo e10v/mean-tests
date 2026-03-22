@@ -1,8 +1,11 @@
 output = "reports/stronger-skewness.md"
+buckets = [10, 20, 50, 100]
 
+[simulation]
 rng = 42
 n_simulations = 10_000
-buckets = [10, 20, 50, 100]
+batch_size = 1
+max_workers = 0  # If less or equal to zero then the default is used
 
 [sample]
 alpha = 0.05  # Type I error rate for sample size calculation and estimation of power

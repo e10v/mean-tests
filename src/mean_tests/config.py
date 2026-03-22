@@ -6,8 +6,18 @@ import pydantic
 
 
 PositiveFloat = Annotated[pydantic.StrictFloat, pydantic.Field(gt=0)]
+PositiveInt = Annotated[pydantic.StrictInt, pydantic.Field(gt=0)]
 Proportion = Annotated[pydantic.StrictFloat, pydantic.Field(gt=0, lt=1)]
 IntGE10 = Annotated[pydantic.StrictInt, pydantic.Field(ge=10)]
+
+
+class SimulationConfig(pydantic.BaseModel):
+    model_config = pydantic.ConfigDict(extra="forbid")
+
+    rng: pydantic.StrictInt
+    n_simulations: IntGE10
+    batch_size: PositiveInt
+    max_workers: pydantic.StrictInt
 
 
 class SampleConfig(pydantic.BaseModel):
@@ -42,9 +52,8 @@ class MeanTestsConfig(pydantic.BaseModel):
     model_config = pydantic.ConfigDict(extra="forbid")
 
     output: pydantic.StrictStr
-    rng: pydantic.StrictInt
-    n_simulations: IntGE10
     buckets: tuple[IntGE10, ...]
+    simulation: SimulationConfig
     sample: SampleConfig
     treatments: tuple[TreatmentConfig, ...]
     user_tests: tuple[TestConfig, ...]

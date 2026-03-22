@@ -4,7 +4,7 @@ import concurrent.futures
 import functools
 import math
 import multiprocessing as mp
-from typing import TYPE_CHECKING, Annotated
+from typing import TYPE_CHECKING
 
 import numpy as np
 import polars as pl
@@ -26,12 +26,10 @@ if TYPE_CHECKING:
 ABS_TOL = 1e-5
 
 
-PositiveInt = Annotated[pydantic.StrictInt, pydantic.Field(gt=0)]
-
 class SampleParams(pydantic.BaseModel):
     model_config = pydantic.ConfigDict(extra="forbid")
 
-    sample_size: PositiveInt
+    sample_size: mean_tests.config.PositiveInt
     ratio: mean_tests.config.PositiveFloat
     mu0: pydantic.StrictFloat
     sigma0: mean_tests.config.PositiveFloat
@@ -40,16 +38,15 @@ class SampleParams(pydantic.BaseModel):
 
 
 def generate_simulation_report(
-    rng: int | np.random.Generator,
     *,
-    n_simulations: int,
+    simulation: mean_tests.config.SimulationConfig,
     user_tests: tuple[mean_tests.config.TestConfig, ...],
     bucket_tests: tuple[mean_tests.config.TestConfig, ...],
     buckets: tuple[int, ...],
     sample: mean_tests.config.SampleConfig,
     treatments: tuple[mean_tests.config.TreatmentConfig, ...],
 ) -> str:
-    rng = np.random.default_rng(rng)
+    rng = np.random.default_rng(simulation.rng)
     user_experiment = mean_tests.utils.create_experiment(user_tests)
     bucket_experiment = mean_tests.utils.create_experiment(bucket_tests)
 
@@ -59,7 +56,7 @@ def generate_simulation_report(
 
     report = ["# Comparison of two-sample mean tests"]
     report.append(mean_tests.utils.render_dict({
-        "number of simulations": n_simulations,
+        "number of simulations": simulation.n_simulations,
         "alpha": sample.alpha,
         "reference power": sample.power,
         "treatment-to-control allocation ratio": sample.ratio,
@@ -95,7 +92,9 @@ def generate_simulation_report(
         tqdm.tqdm.write(treatment.name)
         simulation_results = run_simulation(
             rng,
-            n_simulations=n_simulations,
+            n_simulations=simulation.n_simulations,
+            batch_size=simulation.batch_size,
+            max_workers=simulation.max_workers,
             user_experiment=user_experiment,
             bucket_experiment=bucket_experiment,
             buckets=buckets,
@@ -130,24 +129,66 @@ def run_simulation(
     rng: np.random.Generator,
     *,
     n_simulations: int,
+    batch_size: int,
+    max_workers: int,
     user_experiment: tt.Experiment,
     bucket_experiment: tt.Experiment,
     buckets: tuple[int, ...],
     sample_params: SampleParams,
 ) -> pl.DataFrame:
+    d, m = divmod(n_simulations, batch_size)
+    batch_sizes = [batch_size] * d
+    if m > 0:
+        batch_sizes.append(m)
+
     simulation = functools.partial(
-        analyze_experiment,
+        analyze_batch,
         user_experiment=user_experiment,
         bucket_experiment=bucket_experiment,
         buckets=buckets,
         sample_params=sample_params,
     )
-    mp_context = mp.get_context("spawn")
-    with concurrent.futures.ProcessPoolExecutor(mp_context=mp_context) as executor:
-        return pl.concat(tqdm.tqdm(
-            executor.map(simulation, rng.spawn(n_simulations)),
-            total=n_simulations,
-        ))
+
+    with concurrent.futures.ProcessPoolExecutor(
+        max_workers=max_workers if max_workers > 0 else None,
+        mp_context=mp.get_context("spawn"),
+    ) as executor:
+        batch_results = executor.map(
+            simulation,
+            rng.spawn(len(batch_sizes)),
+            batch_sizes,
+        )
+        results = []
+        with tqdm.tqdm(total=n_simulations) as progress:
+            for batch_result, completed_batch_size in zip(
+                batch_results,
+                batch_sizes,
+                strict=True,
+            ):
+                results.append(batch_result)
+                progress.update(completed_batch_size)
+        return pl.concat(results)
+
+
+def analyze_batch(
+    rng: np.random.Generator,
+    batch_size: int,
+    *,
+    user_experiment: tt.Experiment,
+    bucket_experiment: tt.Experiment,
+    buckets: tuple[int, ...],
+    sample_params: SampleParams,
+) -> pl.DataFrame:
+    return pl.concat(
+        analyze_experiment(
+            rng,
+            user_experiment=user_experiment,
+            bucket_experiment=bucket_experiment,
+            buckets=buckets,
+            sample_params=sample_params,
+        )
+        for _ in range(batch_size)
+    )
 
 
 def analyze_experiment(
