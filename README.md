@@ -49,11 +49,9 @@ We want a test with high statistical power while keeping the type I error rate a
 
 ## Simulation
 
-In real-world scenarios, the distribution of a metric across users is often highly skewed and follows a Pareto-like pattern: 10–30% of users create 70–90% of the value (revenue, transactions, sessions, and so on). For convenience, we call these 10–30% of users the "top" users and the rest the "bottom" users. The treatment effect is often distributed unevenly across users. Sometimes, it even goes in opposite directions for top and bottom users, with a near-zero average effect.
+In real-world scenarios, the distribution of a metric across users is often highly skewed and follows a Pareto-like pattern: `10-30%` of users create `70-90%` of the value (revenue, transactions, sessions, and so on). For convenience, we call these `10-30%` of users the "top" users and the rest the "bottom" users. The treatment effect is often distributed unevenly across users. Sometimes, it even goes in opposite directions for top and bottom users, with a near-zero average effect.
 
-The code in this repository simulates many experiments with skewed data sampled from a lognormal distribution. The skewness is determined by a Pareto-like rule: the top `P` share of users creates the `Q` share of value. The treatment effect is defined separately for top and bottom users. Sample size is estimated to target a power of `0.8`.
-
-Five types of treatments are simulated, `10_000` times each:
+The code in this repository simulates many experiments with skewed data sampled from a lognormal distribution. The skewness is determined by a Pareto-like rule: the top `P` share of users creates the `Q` share of value. The treatment effect is defined separately for top and bottom users. Five types of treatments are simulated, `10_000` times each:
 
 1. Positive effect on top users, negative effect on bottom users, and zero overall average effect.
 2. Negative effect on top users, positive effect on bottom users, and zero overall average effect.
@@ -65,20 +63,28 @@ The first two are labeled A/A because the overall population means are equal, ev
 
 The [default](configs/default.toml) configuration uses the following parameters:
 
-- Skewness: 30% of top users create 70% of value.
+- Skewness: `30%` of top users create `70%` of value.
 - Significance level `0.05`.
 - Equal allocation of users between variants.
-- Relative effect size 5%:
+- Relative effect size `5%`:
     - In A/A simulations: reference effect size for sample size calculation.
     - In A/B simulations: average effect size in treatment relative to control.
+- Sample size is estimated to target a power of `0.8`.
 
 Other configurations differ from the default as follows:
 
 - [smaller-alpha](configs/smaller-alpha.toml): significance level `0.01`.
-- [smaller-diff](configs/smaller-diff.toml): effect size 2%.
-- [stronger-skewness](configs/stronger-skewness.toml): 20% of top users create 80% of value.
-- [unbalanced-ratio](configs/unbalanced-ratio.toml): 1:4 treatment-to-control
-  user allocation.
+- [smaller-diff](configs/smaller-diff.toml): effect size `2%`.
+- [stronger-skewness](configs/stronger-skewness.toml): `20%` of top users create `80%` of value.
+- [unbalanced-ratio](configs/unbalanced-ratio.toml): `1:4` treatment-to-control user allocation.
+
+Simulation reports are saved as Markdown files:
+
+- [default](reports/default.md),
+- [smaller-alpha](reports/smaller-alpha.md),
+- [smaller-diff](reports/smaller-diff.md),
+- [stronger-skewness](reports/stronger-skewness.md),
+- [unbalanced-ratio](reports/unbalanced-ratio.md).
 
 ## How to reproduce the results
 
