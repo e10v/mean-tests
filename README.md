@@ -93,7 +93,7 @@ Simulation reports are saved as Markdown files:
 Clone the repository and change into the directory:
 
 ```bash
-git clone git@github.com:e10v/mean-tests.git && cd mean-tests
+git clone https://github.com/e10v/mean-tests.git && cd mean-tests
 ```
 
 Install dependencies:
