@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import concurrent.futures
 import functools
+import itertools
 import math
 import multiprocessing as mp
 from typing import TYPE_CHECKING
@@ -89,8 +90,16 @@ def generate_simulation_report(
             rel_diff=rel_diff,
         )
 
+        report.append(f"## {treatment.name}")
+        report.append(mean_tests.utils.render_dict({
+            "top users effect (relative to total)": rel_diff_top,
+            "bottom users effect (relative to total)": rel_diff_bottom,
+            "total relative effect": rel_diff_total,
+            "sample size": sample_size,
+        }))
+
         tqdm.tqdm.write(treatment.name)
-        simulation_results = run_simulation(
+        result = run_simulation(
             rng,
             n_simulations=simulation.n_simulations,
             batch_size=simulation.batch_size,
@@ -107,20 +116,12 @@ def generate_simulation_report(
                 sigma1=sigma1,
             ),
         )
-        results = summarize_results(
-            simulation_results,
+
+        report.append(mean_tests.utils.render_dicts(summarize_result(
+            result,
             alpha=sample.alpha,
             rate_col=rate_col,
-        )
-
-        report.append(f"## {treatment.name}")
-        report.append(mean_tests.utils.render_dict({
-            "top users effect (relative to total)": rel_diff_top,
-            "bottom users effect (relative to total)": rel_diff_bottom,
-            "total relative effect": rel_diff_total,
-            "sample size": sample_size,
-        }))
-        report.append(mean_tests.utils.render_dicts(results))
+        )))
 
     return "\n\n".join(report)
 
@@ -136,10 +137,9 @@ def run_simulation(
     buckets: tuple[int, ...],
     sample_params: SampleParams,
 ) -> pl.DataFrame:
-    d, m = divmod(n_simulations, batch_size)
-    batch_sizes = [batch_size] * d
-    if m > 0:
-        batch_sizes.append(m)
+    rng_batches = tuple(
+        itertools.batched(rng.spawn(n_simulations), batch_size, strict=False))
+    batch_sizes = tuple(len(rng_batch) for rng_batch in rng_batches)
 
     simulation = functools.partial(
         analyze_batch,
@@ -153,15 +153,10 @@ def run_simulation(
         max_workers=max_workers if max_workers > 0 else None,
         mp_context=mp.get_context("spawn"),
     ) as executor:
-        batch_results = executor.map(
-            simulation,
-            rng.spawn(len(batch_sizes)),
-            batch_sizes,
-        )
         results = []
         with tqdm.tqdm(total=n_simulations) as progress:
             for batch_result, completed_batch_size in zip(
-                batch_results,
+                executor.map(simulation, rng_batches),
                 batch_sizes,
                 strict=True,
             ):
@@ -171,8 +166,7 @@ def run_simulation(
 
 
 def analyze_batch(
-    rng: np.random.Generator,
-    batch_size: int,
+    rng_batch: tuple[np.random.Generator, ...],
     *,
     user_experiment: tt.Experiment,
     bucket_experiment: tt.Experiment,
@@ -187,7 +181,7 @@ def analyze_batch(
             buckets=buckets,
             sample_params=sample_params,
         )
-        for _ in range(batch_size)
+        for rng in rng_batch
     )
 
 
@@ -235,13 +229,13 @@ def analyze_preset(
     )
 
 
-def summarize_results(
-    results: pl.DataFrame,
+def summarize_result(
+    result: pl.DataFrame,
     alpha: float,
     rate_col: str,
 ) -> list[dict[str, Any]]:
     return (
-        results.lazy()
+        result.lazy()
         .filter(pl.col("pvalue").is_not_nan())
         .group_by("test", "level")
         .agg(
