@@ -31,7 +31,6 @@ def main() -> None:
         bucket_tests=config.bucket_tests,
         buckets=config.buckets,
         sample=config.sample,
-        control=config.control,
         treatments=config.treatments,
     )
 

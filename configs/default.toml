@@ -9,8 +9,6 @@ alpha = 0.05  # Type I error rate for sample size calculation and estimation of 
 power = 0.8  # Reference power for sample size calculation
 ratio = 1.0  # Treatment-to-control allocation ratio
 rel_diff_default = 0.05  # Reference uplift for sample size calculation in A/A simulations
-
-[control]
 top_users = 0.3  # Top X share of users
 top_value = 0.7  # Create Y share of value
 
