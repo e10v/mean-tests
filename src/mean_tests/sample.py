@@ -15,7 +15,7 @@ def calc_sigma(top_users: float, top_value: float) -> float:
     return scipy.stats.norm.isf(top_users) + scipy.stats.norm.ppf(top_value)
 
 
-def calc_mu(mean: float, sigma: float) -> float:
+def calc_mu(sigma: float, mean: float = 1.0) -> float:
     return math.log(mean) - square(sigma)/2
 
 

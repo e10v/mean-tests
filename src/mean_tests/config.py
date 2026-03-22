@@ -22,7 +22,6 @@ class SampleConfig(pydantic.BaseModel):
 class ControlConfig(pydantic.BaseModel):
     model_config = pydantic.ConfigDict(extra="forbid")
 
-    mean: PositiveFloat
     top_users: Proportion
     top_value: Proportion
 

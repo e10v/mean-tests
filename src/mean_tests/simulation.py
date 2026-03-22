@@ -56,7 +56,7 @@ def generate_simulation_report(
 
     top_users, top_value = control.top_users, control.top_value
     sigma0 = mean_tests.sample.calc_sigma(top_users, top_value)
-    mu0 = mean_tests.sample.calc_mu(control.mean, sigma0)
+    mu0 = mean_tests.sample.calc_mu(sigma0)
 
     report = ["# Comparison of two-sample mean tests"]
     report.append(mean_tests.utils.render_dict({
@@ -83,7 +83,7 @@ def generate_simulation_report(
             top_users=control.top_users,
             top_value=(top_value + rel_diff_top) / (1 + rel_diff_total),
         )
-        mu1 = mean_tests.sample.calc_mu(control.mean * (1 + rel_diff_total), sigma1)
+        mu1 = mean_tests.sample.calc_mu(sigma1, 1 + rel_diff_total)
         sample_size = mean_tests.sample.calc_sample_size(
             alpha=sample.alpha,
             power=sample.power,

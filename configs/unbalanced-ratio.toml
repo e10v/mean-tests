@@ -11,7 +11,6 @@ ratio = 0.25  # Treatment-to-control allocation ratio
 rel_diff_default = 0.05  # Reference uplift for sample size calculation in A/A simulations
 
 [control]
-mean = 1.0
 top_users = 0.3  # Top X share of users
 top_value = 0.7  # Create Y share of value
 
